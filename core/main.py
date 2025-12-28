@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import FastAPI, status, Path, Query, Body, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
-from core.database import get_db, Cost
+from database import get_db, Cost
 from sqlalchemy.orm import Session
 
 from schemas import CostCreateSchema, CostResponseSchema, CostUpdateSchema

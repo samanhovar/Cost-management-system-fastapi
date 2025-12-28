@@ -1,5 +1,4 @@
-from rich.table import Column
-from sqlalchemy import create_engine, Integer, String, Float
+from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 
