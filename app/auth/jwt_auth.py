@@ -1,7 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, status, Request
 
 from users.models import UserModel
 
@@ -16,19 +15,17 @@ import jwt
 from jwt.exceptions import DecodeError, InvalidSignatureError
 
 
-security = HTTPBearer()
-
-
 def get_authenticated_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
 ):
-    if not credentials or not credentials.credentials:
+    token = request.cookies.get("access_token")
+    
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed, token not provided",
+            detail="Not Authenticated",
         )
-    token = credentials.credentials
     try:
         decoded = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
         user_id = decoded.get("user_id", None)
@@ -54,12 +51,6 @@ def get_authenticated_user(
         user_obj = db.query(UserModel).filter_by(id=user_id).one()
         return user_obj
 
-    except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed, invalid token",
-        )
-
     except InvalidSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -72,6 +63,12 @@ def get_authenticated_user(
             detail="Authentication failed, decode failed",
         )
 
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed, invalid token",
+        )
+        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,7 +76,7 @@ def get_authenticated_user(
         )
 
 
-def generate_access_token(user_id: int, expires_in: int = 60 * 5) -> str:
+def generate_access_token(user_id: int, expires_in: int = settings.ACCESS_TOKEN_EXPIRE_SECONDS) -> str:
     # use UTC everywhere to avoid timezone/skew issues
     now = datetime.utcnow()
     payload = {
@@ -91,7 +88,7 @@ def generate_access_token(user_id: int, expires_in: int = 60 * 5) -> str:
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm="HS256")
 
 
-def generate_refresh_token(user_id: int, expires_in: int = (60 * 60) * 24) -> str:
+def generate_refresh_token(user_id: int, expires_in: int = settings.REFRESH_TOKEN_EXPIRE_SECONDS) -> str:
     now = datetime.utcnow()
     payload = {
         "type": "refresh",

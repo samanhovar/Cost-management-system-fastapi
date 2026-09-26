@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, func, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from core.database import Base
@@ -45,7 +45,8 @@ class TokenModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     token = Column(String, unique=True, nullable=False)
+    is_revoked = Column(Boolean, default=False, nullable=False)
     created_date = Column(DateTime, default=func.now(), nullable=False)
-    # Add expire token
+    expires_at = Column(DateTime, nullable=False)
     
     user = relationship("UserModel", uselist=False)

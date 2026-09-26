@@ -1,19 +1,21 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import JSONResponse
 
 from core.database import get_db
+from core.config import settings
 
 from sqlalchemy.orm import Session
 
-from users.models import UserModel
-from users.schemas import UserLoginSchema, UserRegisterSchema, UserRefreshTokenSchema
+from users.models import UserModel, TokenModel
+from users.schemas import UserLoginSchema, UserRegisterSchema
 
 from auth.jwt_auth import (
     generate_access_token,
     generate_refresh_token,
-    decode_refresh_token,
 )
 
 router = APIRouter(tags=["users"], prefix="/users")
@@ -22,6 +24,7 @@ router = APIRouter(tags=["users"], prefix="/users")
 @router.post("/login")
 async def user_login(
     request: UserLoginSchema,
+    response: Response,
     db: Annotated[Session, Depends(get_db)],
 ):
     user_obj = db.query(UserModel).filter_by(username=request.username.lower()).first()
@@ -41,13 +44,34 @@ async def user_login(
     access_token = generate_access_token(user_obj.id)
     refresh_token = generate_refresh_token(user_obj.id)
 
-    return JSONResponse(
-        {
-            "message": "logged in successfully",
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-        }
+    db_token = TokenModel(
+        user_id=user_obj.id,
+        token=refresh_token,
+        expires_at=datetime.utcnow() + timedelta(settings.REFRESH_TOKEN_EXPIRE_SECONDS),
     )
+    db.add(db_token)
+    db.commit()
+
+    response = JSONResponse({"message": "logged in successfully"})
+
+    # send tokens by cookies
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="strict",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_SECONDS,
+    )  # secure=True,  # for https only
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        samesite="strict",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
+    )  # secure=True,  # for https only
+
+    return response
 
 
 @router.post("/register")
@@ -71,9 +95,80 @@ async def user_register(
 
 @router.post("/refresh-token")
 async def user_refresh_token(
-    request: UserRefreshTokenSchema,
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
 ):
-    user_id = decode_refresh_token(request.token)
-    access_token = generate_access_token(user_id)
-    return JSONResponse({"access_token": access_token})
+    incoming_token = request.cookies.get("refresh_token")
+    if not incoming_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token missing",
+        )
+
+    db_token = db.query(TokenModel).filter(TokenModel.token == incoming_token).first()
+    if not db_token or db_token.is_revoked or db_token.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+
+    db_token.is_revoked = True
+
+    new_access_token = generate_access_token(user_id=db_token.user_id)
+    new_refresh_token = generate_refresh_token(user_id=db_token.user_id)
+    
+
+    new_db_token = TokenModel(
+        user_id=db_token.user_id,
+        token=new_refresh_token,
+        expires_at=datetime.utcnow() + timedelta(settings.REFRESH_TOKEN_EXPIRE_SECONDS),
+    )
+    db.add(new_db_token)
+    db.commit()
+
+    response = JSONResponse({"message": "token refreshed successfully"})
+    response.set_cookie(
+        key="access_token",
+        value=new_access_token,
+        httponly=True,
+        samesite="strict",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_SECONDS,
+    )  # secure=True,  # for https only
+
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        samesite="strict",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
+    )  # secure=True,  # for https only
+
+    return response
+
+
+# Deleting cookies in logout
+@router.post("/logout")
+async def user_logout(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+):
+    incoming_token = request.cookies.get("refresh_token")
+    if incoming_token:
+        db_token = db.query(TokenModel).filter(TokenModel.token == incoming_token).first()
+        if db_token:
+            db_token.is_revoked = True
+            db.commit()
+    
+    
+    response = JSONResponse({"message": "logged out successfully"})
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="strict",
+    )  # secure=True     # for https only
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="strict",
+    )  # secure=True     # for https only
+    return response
