@@ -16,6 +16,8 @@ from users.schemas import UserLoginSchema, UserRegisterSchema
 from auth.jwt_auth import (
     generate_access_token,
     generate_refresh_token,
+    set_auth_cookies,
+    clear_auth_cookies,
 )
 
 router = APIRouter(tags=["users"], prefix="/users")
@@ -55,21 +57,9 @@ async def user_login(
     response = JSONResponse({"message": "logged in successfully"})
 
     # send tokens by cookies
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="strict",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_SECONDS,
-    )  # secure=True,  # for https only
-
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        samesite="strict",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
-    )  # secure=True,  # for https only
+    set_auth_cookies(
+        response=response, access_token=access_token, refresh_token=refresh_token
+    )
 
     return response
 
@@ -116,7 +106,6 @@ async def user_refresh_token(
 
     new_access_token = generate_access_token(user_id=db_token.user_id)
     new_refresh_token = generate_refresh_token(user_id=db_token.user_id)
-    
 
     new_db_token = TokenModel(
         user_id=db_token.user_id,
@@ -127,21 +116,11 @@ async def user_refresh_token(
     db.commit()
 
     response = JSONResponse({"message": "token refreshed successfully"})
-    response.set_cookie(
-        key="access_token",
-        value=new_access_token,
-        httponly=True,
-        samesite="strict",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_SECONDS,
-    )  # secure=True,  # for https only
-
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,
-        samesite="strict",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
-    )  # secure=True,  # for https only
+    set_auth_cookies(
+        response=response,
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+    )
 
     return response
 
@@ -154,21 +133,14 @@ async def user_logout(
 ):
     incoming_token = request.cookies.get("refresh_token")
     if incoming_token:
-        db_token = db.query(TokenModel).filter(TokenModel.token == incoming_token).first()
+        db_token = (
+            db.query(TokenModel).filter(TokenModel.token == incoming_token).first()
+        )
         if db_token:
             db_token.is_revoked = True
             db.commit()
-    
-    
+
     response = JSONResponse({"message": "logged out successfully"})
-    response.delete_cookie(
-        key="access_token",
-        httponly=True,
-        samesite="strict",
-    )  # secure=True     # for https only
-    response.delete_cookie(
-        key="access_token",
-        httponly=True,
-        samesite="strict",
-    )  # secure=True     # for https only
+    clear_auth_cookies(response=response)
+    
     return response

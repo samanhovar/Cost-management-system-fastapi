@@ -141,3 +141,35 @@ def decode_refresh_token(token):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Authentication failed, {e}",
         )
+
+
+# Functions for set and clear token from cookies
+def set_auth_cookies(response, access_token: str, refresh_token: str) -> None:
+    response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            samesite="strict",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_SECONDS,
+        )  # secure=True,  # for https only
+    
+    response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            samesite="strict",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
+        )  # secure=True,  # for https only
+    
+    
+def clear_auth_cookies(response) -> None:
+    response.delete_cookie(
+            key="access_token",
+            httponly=True,
+            samesite="strict",
+        )  # secure=True     # for https only
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="strict",
+    )  # secure=True     # for https only
