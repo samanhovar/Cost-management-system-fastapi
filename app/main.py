@@ -1,12 +1,12 @@
 import time
 
 from fastapi import FastAPI, status, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from contextlib import asynccontextmanager
 
 from costs.routes import router as costs_router
 from users.routes import router as users_router
-
 
 target_metadata = [
     {
@@ -50,7 +50,6 @@ app = FastAPI(
 async def read_root():
     response = {
         "message": "welcome to this service",
-        
     }
     return response
 
@@ -66,3 +65,14 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.perf_counter() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     return response
+
+
+# origins = ["http://127.0.0.1:5500"]
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
