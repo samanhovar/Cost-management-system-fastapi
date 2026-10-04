@@ -1,10 +1,13 @@
 import time
+from typing import Annotated
 
-from fastapi import FastAPI, status, Request
+from fastapi import FastAPI, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from contextlib import asynccontextmanager
 
+from core.dependencies import get_prefered_language, LanguageEnum
 from costs.routes import router as costs_router
 from users.routes import router as users_router
 
@@ -45,17 +48,29 @@ app = FastAPI(
 )
 
 
-# root page
+# # root page
+# @app.get("/", status_code=status.HTTP_200_OK)
+# async def read_root():
+#     response = {
+#         "message": "welcome to this service",
+#     }
+#     return response
+
+# simple test for recognize language
 @app.get("/", status_code=status.HTTP_200_OK)
-async def read_root():
+async def read_root(language: Annotated[LanguageEnum, Depends(get_prefered_language)]):
     response = {
-        "message": "welcome to this service",
+        LanguageEnum.fa: "سلام",
+        LanguageEnum.en: "Hello"
     }
-    return response
+    return {"message": response[language]}
 
 
 app.include_router(costs_router)
 app.include_router(users_router)
+
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware("http")
@@ -67,12 +82,12 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
-# origins = ["http://127.0.0.1:5500"]
+origins = ["http://127.0.0.1:5500"]
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
