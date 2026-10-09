@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Path, Query, Body, HTTPException, Depends
+from fastapi import APIRouter, status, Path, Query, Body, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 
 from costs.models import Cost
@@ -14,6 +14,9 @@ from core.database import get_db
 from auth.jwt_auth import get_authenticated_user
 from users.models import UserModel
 
+# translated messages
+from core.i18n import get_translator
+
 router = APIRouter(tags=["costs"], prefix="/costs")
 
 
@@ -22,10 +25,10 @@ router = APIRouter(tags=["costs"], prefix="/costs")
     "/costs", status_code=status.HTTP_200_OK, response_model=list[CostResponseSchema]
 )
 async def read_costs(
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[UserModel, Depends(get_authenticated_user)],
-    lower_than: Annotated[float | None, Query(alias="lower-bound")] = None,
-    higher_than: Annotated[float | None, Query(alias="higher-bound")] = None,
+        db: Annotated[Session, Depends(get_db)],
+        user: Annotated[UserModel, Depends(get_authenticated_user)],
+        lower_than: Annotated[float | None, Query(alias="lower-bound")] = None,
+        higher_than: Annotated[float | None, Query(alias="higher-bound")] = None,
 ):
     query = db.query(Cost).filter_by(user_id=user.id)
 
@@ -48,9 +51,9 @@ async def read_costs(
     response_model=CostResponseSchema,
 )
 async def add_cost(
-    request: CostCreateSchema,
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[UserModel, Depends(get_authenticated_user)],
+        request: CostCreateSchema,
+        db: Annotated[Session, Depends(get_db)],
+        user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
     data = request.model_dump()
     data.update({"user_id": user.id})
@@ -68,14 +71,16 @@ async def add_cost(
     response_model=CostResponseSchema,
 )
 async def read_cost_by_id(
-    cost_id: Annotated[int, Path()],
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[UserModel, Depends(get_authenticated_user)],
+        http_request: Request,
+        cost_id: Annotated[int, Path()],
+        db: Annotated[Session, Depends(get_db)],
+        user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
+    _ = get_translator(http_request.state.language)
     cost = db.query(Cost).filter_by(user_id=user.id, id=cost_id).one_or_none()
     if not cost:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="not found error"
+            status_code=status.HTTP_404_NOT_FOUND, detail=_("not found error")
         )
     return cost
 
@@ -87,15 +92,17 @@ async def read_cost_by_id(
     response_model=CostResponseSchema,
 )
 async def replace_cost_by_id(
-    request: CostUpdateSchema,
-    cost_id: Annotated[int, Path()],
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[UserModel, Depends(get_authenticated_user)],
+        http_request: Request,
+        request: CostUpdateSchema,
+        cost_id: Annotated[int, Path()],
+        db: Annotated[Session, Depends(get_db)],
+        user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
+    _ = get_translator(http_request.state.language)
     cost = db.query(Cost).filter_by(user_id=user.id, id=cost_id).one_or_none()
     if not cost:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="not found error"
+            status_code=status.HTTP_404_NOT_FOUND, detail=_("not found error")
         )
 
     for field, value in request.model_dump(exclude_unset=True).items():
@@ -114,21 +121,24 @@ async def replace_cost_by_id(
     response_model=CostResponseSchema,
 )
 async def delete_cost_by_id(
-    cost_id: Annotated[int, Path()],
-    db: Annotated[Session, Depends(get_db)],
-    user: Annotated[UserModel, Depends(get_authenticated_user)],
+        http_request: Request,
+        cost_id: Annotated[int, Path()],
+        db: Annotated[Session, Depends(get_db)],
+        user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
+    _ = get_translator(http_request.state.language)
+
     cost = db.query(Cost).filter_by(user_id=user.id, id=cost_id).one_or_none()
 
     if not cost:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="not found error"
+            status_code=status.HTTP_404_NOT_FOUND, detail=_("not found error")
         )
 
     db.delete(cost)
     db.commit()
 
     return JSONResponse(
-        content={"detail": "object removed successfully"},
+        content={"detail": _("object removed successfully")},
         status_code=status.HTTP_200_OK,
     )

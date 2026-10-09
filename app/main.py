@@ -1,13 +1,14 @@
 import time
-from typing import Annotated
 
-from fastapi import FastAPI, status, Request, Depends
+from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from contextlib import asynccontextmanager
 
-from core.dependencies import get_prefered_language, LanguageEnum
+from core.dependencies import add_language_to_request
+from core.i18n import get_translator
+
 from costs.routes import router as costs_router
 from users.routes import router as users_router
 
@@ -48,22 +49,11 @@ app = FastAPI(
 )
 
 
-# # root page
-# @app.get("/", status_code=status.HTTP_200_OK)
-# async def read_root():
-#     response = {
-#         "message": "welcome to this service",
-#     }
-#     return response
-
-# simple test for recognize language
+# root page
 @app.get("/", status_code=status.HTTP_200_OK)
-async def read_root(language: Annotated[LanguageEnum, Depends(get_prefered_language)]):
-    response = {
-        LanguageEnum.fa: "سلام",
-        LanguageEnum.en: "Hello"
-    }
-    return {"message": response[language]}
+async def read_root(http_request: Request):
+    _ = get_translator(http_request.state.language)
+    return {"message": _("Welcome to this service")}
 
 
 app.include_router(costs_router)
@@ -74,12 +64,15 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
+async def add_process_time_header(http_request: Request, call_next):
     start_time = time.perf_counter()
-    response = await call_next(request)
+    response = await call_next(http_request)
     process_time = time.perf_counter() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     return response
+
+
+app.middleware("http")(add_language_to_request)
 
 
 origins = ["http://127.0.0.1:5500"]

@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 
 from core.database import get_db
 from core.config import settings
+# translated messages
+from core.i18n import get_translator
 
 from sqlalchemy.orm import Session
 
@@ -25,21 +27,23 @@ router = APIRouter(tags=["users"], prefix="/users")
 
 @router.post("/login")
 async def user_login(
-    request: UserLoginSchema,
-    response: Response,
-    db: Annotated[Session, Depends(get_db)],
+        http_request: Request,
+        request: UserLoginSchema,
+        response: Response,
+        db: Annotated[Session, Depends(get_db)],
 ):
+    _ = get_translator(http_request.state.language)
     user_obj = db.query(UserModel).filter_by(username=request.username.lower()).first()
     if not user_obj:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="username or password invalid",
+            detail=_("username or password invalid"),
         )
 
     if not user_obj.verify_password(request.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username or password invalid",
+            detail=_("username or password invalid"),
         )
 
     # Token
@@ -54,7 +58,7 @@ async def user_login(
     db.add(db_token)
     db.commit()
 
-    response = JSONResponse({"message": "logged in successfully"})
+    response = JSONResponse({"message": _("logged in successfully")})
 
     # send tokens by cookies
     set_auth_cookies(
@@ -66,13 +70,15 @@ async def user_login(
 
 @router.post("/register")
 async def user_register(
-    request: UserRegisterSchema,
-    db: Annotated[Session, Depends(get_db)],
+        http_request: Request,
+        request: UserRegisterSchema,
+        db: Annotated[Session, Depends(get_db)],
 ):
+    _ = get_translator(http_request.state.language)
     if db.query(UserModel).filter_by(username=request.username.lower()).first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="username already exists!",
+            detail=_("username already exists!"),
         )
 
     user_obj = UserModel(username=request.username.lower())
@@ -80,26 +86,28 @@ async def user_register(
 
     db.add(user_obj)
     db.commit()
-    return JSONResponse({"detail": "user registered successfully"})
+    return JSONResponse({"detail": _("user registered successfully")})
 
 
 @router.post("/refresh-token")
 async def user_refresh_token(
-    request: Request,
-    db: Annotated[Session, Depends(get_db)],
+        http_request: Request,
+        request: Request,
+        db: Annotated[Session, Depends(get_db)],
 ):
+    _ = get_translator(http_request.state.language)
     incoming_token = request.cookies.get("refresh_token")
     if not incoming_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token missing",
+            detail=_("Refresh token missing"),
         )
 
     db_token = db.query(TokenModel).filter(TokenModel.token == incoming_token).first()
     if not db_token or db_token.is_revoked or db_token.expires_at < datetime.utcnow():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail=_("Invalid or expired refresh token"),
         )
 
     db_token.is_revoked = True
@@ -115,7 +123,7 @@ async def user_refresh_token(
     db.add(new_db_token)
     db.commit()
 
-    response = JSONResponse({"message": "token refreshed successfully"})
+    response = JSONResponse({"message": _("token refreshed successfully")})
     set_auth_cookies(
         response=response,
         access_token=new_access_token,
@@ -128,9 +136,11 @@ async def user_refresh_token(
 # Deleting cookies in logout
 @router.post("/logout")
 async def user_logout(
-    request: Request,
-    db: Annotated[Session, Depends(get_db)],
+        http_request: Request,
+        request: Request,
+        db: Annotated[Session, Depends(get_db)],
 ):
+    _ = get_translator(http_request.state.language)
     incoming_token = request.cookies.get("refresh_token")
     if incoming_token:
         db_token = (
@@ -140,7 +150,7 @@ async def user_logout(
             db_token.is_revoked = True
             db.commit()
 
-    response = JSONResponse({"message": "logged out successfully"})
+    response = JSONResponse({"message": _("logged out successfully")})
     clear_auth_cookies(response=response)
-    
+
     return response

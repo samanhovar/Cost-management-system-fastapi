@@ -1,0 +1,68 @@
+# Persian translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-10-09 09:01+0330\n"
+"PO-Revision-Date: 2026-10-08 09:14+0330\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fa\n"
+"Language-Team: fa <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: main.py:56
+msgid "Welcome to this service"
+msgstr "به این سرویس خوش آمدید"
+
+#: costs/routes.py:83 costs/routes.py:105 costs/routes.py:135
+msgid "not found error"
+msgstr "موردی پیدا نشد"
+
+#: costs/routes.py:142
+msgid "object removed successfully"
+msgstr "مورد با موفقیت حذف شد"
+
+#: users/routes.py:40 users/routes.py:46
+msgid "username or password invalid"
+msgstr "نام کاربری یا رمز عبور اشتباه است"
+
+#: users/routes.py:61
+#, fuzzy
+msgid "logged in successfully"
+msgstr "مورد با موفقیت حذف شد"
+
+#: users/routes.py:81
+msgid "username already exists!"
+msgstr "نام کاربری وجود دارد"
+
+#: users/routes.py:89
+#, fuzzy
+msgid "user registered successfully"
+msgstr "مورد با موفقیت حذف شد"
+
+#: users/routes.py:103
+msgid "Refresh token missing"
+msgstr "رفرش توکن پیدا نشد"
+
+#: users/routes.py:110
+msgid "Invalid or expired refresh token"
+msgstr "رفرش توکن نامعتبر است"
+
+#: users/routes.py:126
+#, fuzzy
+msgid "token refreshed successfully"
+msgstr "مورد با موفقیت حذف شد"
+
+#: users/routes.py:153
+#, fuzzy
+msgid "logged out successfully"
+msgstr "مورد با موفقیت حذف شد"
+

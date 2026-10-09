@@ -20,7 +20,7 @@ class BaseCostSchema(BaseModel):
     @field_validator("title", "description")
     def validate_text(cls, value, info: ValidationInfo):
         if value is not None:
-            pattern = r"^[a-zA-Z\d\s]*$"
+            pattern = r"^[a-zA-Z\d\s.,!?'-]*$"
             if not re.match(pattern, value):
                 raise ValueError(
                     f"{info.field_name} can only contain letters and numbers!"

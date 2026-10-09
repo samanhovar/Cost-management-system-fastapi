@@ -8,16 +8,19 @@ class LanguageEnum(str, Enum):
     en = "en"
     fa = "fa"
 
+
 DEFAULT_LANGUAGE = LanguageEnum.en
 
 
-def get_prefered_language(
-    request: Request,
-    lang: Annotated[LanguageEnum|None, Query(description="select language between 'en:english', 'fa:farsi'")] = None
-) -> LanguageEnum:
+def get_prefered_language(request: Request) -> LanguageEnum:
     # first priority: reading language from query
+    lang = request.query_params.get("lang")
     if lang:
-        return lang
+        try:
+            return LanguageEnum(lang)
+        except ValueError:
+            pass
+
     # second priority: reading from header
     accept_language = request.headers.get("accept-language")
     if accept_language:
@@ -29,5 +32,12 @@ def get_prefered_language(
                 return LanguageEnum(lang_code)
             except ValueError:
                 continue
+
     # third priority: default language -> en
     return DEFAULT_LANGUAGE
+
+
+async def add_language_to_request(request: Request, call_next):
+    request.state.language = get_prefered_language(request)
+    response = await call_next(request)
+    return response
