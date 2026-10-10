@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from core.database import get_db
 from core.config import settings
+
 # translated messages
 from core.i18n import get_translator
 
@@ -27,10 +28,10 @@ router = APIRouter(tags=["users"], prefix="/users")
 
 @router.post("/login")
 async def user_login(
-        http_request: Request,
-        request: UserLoginSchema,
-        response: Response,
-        db: Annotated[Session, Depends(get_db)],
+    http_request: Request,
+    request: UserLoginSchema,
+    response: Response,
+    db: Annotated[Session, Depends(get_db)],
 ):
     _ = get_translator(http_request.state.language)
     user_obj = db.query(UserModel).filter_by(username=request.username.lower()).first()
@@ -70,9 +71,9 @@ async def user_login(
 
 @router.post("/register")
 async def user_register(
-        http_request: Request,
-        request: UserRegisterSchema,
-        db: Annotated[Session, Depends(get_db)],
+    http_request: Request,
+    request: UserRegisterSchema,
+    db: Annotated[Session, Depends(get_db)],
 ):
     _ = get_translator(http_request.state.language)
     if db.query(UserModel).filter_by(username=request.username.lower()).first():
@@ -91,9 +92,9 @@ async def user_register(
 
 @router.post("/refresh-token")
 async def user_refresh_token(
-        http_request: Request,
-        request: Request,
-        db: Annotated[Session, Depends(get_db)],
+    http_request: Request,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
 ):
     _ = get_translator(http_request.state.language)
     incoming_token = request.cookies.get("refresh_token")
@@ -136,9 +137,9 @@ async def user_refresh_token(
 # Deleting cookies in logout
 @router.post("/logout")
 async def user_logout(
-        http_request: Request,
-        request: Request,
-        db: Annotated[Session, Depends(get_db)],
+    http_request: Request,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
 ):
     _ = get_translator(http_request.state.language)
     incoming_token = request.cookies.get("refresh_token")

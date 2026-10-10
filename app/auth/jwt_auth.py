@@ -20,7 +20,7 @@ def get_authenticated_user(
     db: Annotated[Session, Depends(get_db)],
 ):
     token = request.cookies.get("access_token")
-    
+
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -68,7 +68,7 @@ def get_authenticated_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed, invalid token",
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -76,7 +76,9 @@ def get_authenticated_user(
         )
 
 
-def generate_access_token(user_id: int, expires_in: int = settings.ACCESS_TOKEN_EXPIRE_SECONDS) -> str:
+def generate_access_token(
+    user_id: int, expires_in: int = settings.ACCESS_TOKEN_EXPIRE_SECONDS
+) -> str:
     # use UTC everywhere to avoid timezone/skew issues
     now = datetime.utcnow()
     payload = {
@@ -88,7 +90,9 @@ def generate_access_token(user_id: int, expires_in: int = settings.ACCESS_TOKEN_
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm="HS256")
 
 
-def generate_refresh_token(user_id: int, expires_in: int = settings.REFRESH_TOKEN_EXPIRE_SECONDS) -> str:
+def generate_refresh_token(
+    user_id: int, expires_in: int = settings.REFRESH_TOKEN_EXPIRE_SECONDS
+) -> str:
     now = datetime.utcnow()
     payload = {
         "type": "refresh",
@@ -146,28 +150,28 @@ def decode_refresh_token(token):
 # Functions for set and clear token from cookies
 def set_auth_cookies(response, access_token: str, refresh_token: str) -> None:
     response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,
-            samesite="strict",
-            max_age=settings.ACCESS_TOKEN_EXPIRE_SECONDS,
-        )  # secure=True,  # for https only
-    
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="strict",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_SECONDS,
+    )  # secure=True,  # for https only
+
     response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            samesite="strict",
-            max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
-        )  # secure=True,  # for https only
-    
-    
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        samesite="strict",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_SECONDS,
+    )  # secure=True,  # for https only
+
+
 def clear_auth_cookies(response) -> None:
     response.delete_cookie(
-            key="access_token",
-            httponly=True,
-            samesite="strict",
-        )  # secure=True     # for https only
+        key="access_token",
+        httponly=True,
+        samesite="strict",
+    )  # secure=True     # for https only
     response.delete_cookie(
         key="access_token",
         httponly=True,

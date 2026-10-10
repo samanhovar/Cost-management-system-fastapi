@@ -1,6 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Path, Query, Body, HTTPException, Depends, Request
+from fastapi import (
+    APIRouter,
+    status,
+    Path,
+    Query,
+    HTTPException,
+    Depends,
+    Request,
+)
 from fastapi.responses import JSONResponse
 
 from costs.models import Cost
@@ -25,10 +33,10 @@ router = APIRouter(tags=["costs"], prefix="/costs")
     "/costs", status_code=status.HTTP_200_OK, response_model=list[CostResponseSchema]
 )
 async def read_costs(
-        db: Annotated[Session, Depends(get_db)],
-        user: Annotated[UserModel, Depends(get_authenticated_user)],
-        lower_than: Annotated[float | None, Query(alias="lower-bound")] = None,
-        higher_than: Annotated[float | None, Query(alias="higher-bound")] = None,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[UserModel, Depends(get_authenticated_user)],
+    lower_than: Annotated[float | None, Query(alias="lower-bound")] = None,
+    higher_than: Annotated[float | None, Query(alias="higher-bound")] = None,
 ):
     query = db.query(Cost).filter_by(user_id=user.id)
 
@@ -51,9 +59,9 @@ async def read_costs(
     response_model=CostResponseSchema,
 )
 async def add_cost(
-        request: CostCreateSchema,
-        db: Annotated[Session, Depends(get_db)],
-        user: Annotated[UserModel, Depends(get_authenticated_user)],
+    request: CostCreateSchema,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
     data = request.model_dump()
     data.update({"user_id": user.id})
@@ -71,10 +79,10 @@ async def add_cost(
     response_model=CostResponseSchema,
 )
 async def read_cost_by_id(
-        http_request: Request,
-        cost_id: Annotated[int, Path()],
-        db: Annotated[Session, Depends(get_db)],
-        user: Annotated[UserModel, Depends(get_authenticated_user)],
+    http_request: Request,
+    cost_id: Annotated[int, Path()],
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
     _ = get_translator(http_request.state.language)
     cost = db.query(Cost).filter_by(user_id=user.id, id=cost_id).one_or_none()
@@ -92,11 +100,11 @@ async def read_cost_by_id(
     response_model=CostResponseSchema,
 )
 async def replace_cost_by_id(
-        http_request: Request,
-        request: CostUpdateSchema,
-        cost_id: Annotated[int, Path()],
-        db: Annotated[Session, Depends(get_db)],
-        user: Annotated[UserModel, Depends(get_authenticated_user)],
+    http_request: Request,
+    request: CostUpdateSchema,
+    cost_id: Annotated[int, Path()],
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
     _ = get_translator(http_request.state.language)
     cost = db.query(Cost).filter_by(user_id=user.id, id=cost_id).one_or_none()
@@ -121,10 +129,10 @@ async def replace_cost_by_id(
     response_model=CostResponseSchema,
 )
 async def delete_cost_by_id(
-        http_request: Request,
-        cost_id: Annotated[int, Path()],
-        db: Annotated[Session, Depends(get_db)],
-        user: Annotated[UserModel, Depends(get_authenticated_user)],
+    http_request: Request,
+    cost_id: Annotated[int, Path()],
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[UserModel, Depends(get_authenticated_user)],
 ):
     _ = get_translator(http_request.state.language)
 

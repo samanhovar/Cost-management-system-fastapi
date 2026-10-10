@@ -1,7 +1,6 @@
 from enum import Enum
-from typing import Annotated
 
-from fastapi import Request, Query
+from fastapi import Request
 
 
 class LanguageEnum(str, Enum):
